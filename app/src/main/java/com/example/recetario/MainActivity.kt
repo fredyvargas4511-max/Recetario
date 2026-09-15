@@ -232,7 +232,7 @@ fun PerfilGastronomicoView() {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     MetricBox(modifier = Modifier.weight(1f), icon = "🥗", title = "Saludables", value = "14 Platos")
-                    MetricBox(modifier = Modifier.weight(1f), icon = "🔥", title = "Calorías", value = "1,850 kcal")
+                    MetricBox(modifier = Modifier.weight(1f), icon = "🔥", title = "Calorías", value = "1,900 kcal")
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
