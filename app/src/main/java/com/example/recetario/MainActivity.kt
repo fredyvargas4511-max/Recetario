@@ -422,7 +422,7 @@ fun TipsYVideosView() {
     }
 }
 
-// 4. PANTALLA: WEB
+// 4. PANTALLA: web
 @Composable
 fun RestaurantesWebView() {
     Column(modifier = Modifier.fillMaxSize()) {
