@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -21,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -158,9 +156,29 @@ fun SidebarMenu(
 
 // ==================== VISTAS DEL PANEL DERECHO ====================
 
-// 1. PANTALLA: PERFIL
+// 1. PANTALLA: PERFIL (FOTO, ANTROPOMETRÍA, IMC Y ACTIVIDAD)
 @Composable
 fun PerfilGastronomicoView() {
+    // Estados de entrada para el cálculo de IMC y datos personales
+    var nombre by remember { mutableStateOf("Carlos Mendoza") }
+    var edad by remember { mutableStateOf("28") }
+    var pesoInput by remember { mutableStateOf("72.5") }
+    var alturaInput by remember { mutableStateOf("1.75") }
+
+    // Cálculo reactivo del IMC
+    val peso = pesoInput.toDoubleOrNull() ?: 0.0
+    val altura = alturaInput.toDoubleOrNull() ?: 0.0
+    val imc = if (altura > 0.0) peso / (altura * altura) else 0.0
+
+    // Clasificación y color según estándar OMS
+    val (clasificacionImc, colorImc) = when {
+        imc <= 0.0 -> Pair("Sin datos", Color.Gray)
+        imc < 18.5 -> Pair("Bajo peso", Color(0xFF3B82F6))
+        imc in 18.5..24.9 -> Pair("Peso normal", Color(0xFF10B981))
+        imc in 25.0..29.9 -> Pair("Sobrepeso", Color(0xFFF59E0B))
+        else -> Pair("Obesidad", Color(0xFFEF4444))
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -174,7 +192,6 @@ fun PerfilGastronomicoView() {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Contenedor con borde exterior que agrupa las tarjetas
         Card(
             shape = RoundedCornerShape(14.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -182,51 +199,131 @@ fun PerfilGastronomicoView() {
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(10.dp)) {
-                // Tarjeta Principal de Presentación
+
+                // A. Foto y Datos de Usuario
                 Card(
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = LightTealBg),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier.padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(46.dp)
                                 .clip(CircleShape)
                                 .background(PrimaryTeal),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("👨‍🍳", fontSize = 18.sp)
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = "Foto de perfil",
+                                tint = Color.White,
+                                modifier = Modifier.size(42.dp)
+                            )
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
-                            Text("Chef Ejecutivo", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextDark)
-                            Text("Nutrición & Cocina", color = PrimaryTeal, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Text(nombre, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextDark)
+                            Text("$edad años • Plan Activo", color = PrimaryTeal, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Resumen
+                // B. Tarjeta de Resultado de IMC
                 Card(
                     shape = RoundedCornerShape(10.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = colorImc.copy(alpha = 0.12f)),
                     border = CardDefaults.outlinedCardBorder(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
-                        Text("📌 Resumen Gastronómico", color = PrimaryTeal, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        Text("Platos saludables y seguimiento calórico", color = TextMuted, fontSize = 10.sp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text("ÍNDICE DE MASA CORPORAL", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+                            Text(clasificacionImc, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = colorImc)
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color.White
+                        ) {
+                            Text(
+                                text = if (imc > 0.0) String.format("%.1f", imc) else "--",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 16.sp,
+                                color = colorImc,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Fila de Estadísticas Rápidas
+                // C. Inputs Antropométricos (Peso y Altura)
+                Text(
+                    text = "PARÁMETROS FÍSICOS",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextMuted,
+                    letterSpacing = 0.5.sp
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    OutlinedTextField(
+                        value = pesoInput,
+                        onValueChange = { pesoInput = it },
+                        label = { Text("Peso (kg)", fontSize = 10.sp) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryTeal,
+                            unfocusedBorderColor = SoftGrayBorder
+                        )
+                    )
+
+                    OutlinedTextField(
+                        value = alturaInput,
+                        onValueChange = { alturaInput = it },
+                        label = { Text("Altura (m)", fontSize = 10.sp) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryTeal,
+                            unfocusedBorderColor = SoftGrayBorder
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // D. Resumen de Actividad y Estadísticas
+                Text(
+                    text = "ESTADÍSTICAS & CONTROL",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextMuted,
+                    letterSpacing = 0.5.sp
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -242,7 +339,7 @@ fun PerfilGastronomicoView() {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     MetricBox(modifier = Modifier.weight(1f), icon = "📍", title = "Restaurantes", value = "8 Guardados")
-                    MetricBox(modifier = Modifier.weight(1f), icon = "⭐", title = "Top Favoritos", value = "24 Recetas")
+                    MetricBox(modifier = Modifier.weight(1f), icon = "⭐", title = "Favoritos", value = "24 Recetas")
                 }
             }
         }
