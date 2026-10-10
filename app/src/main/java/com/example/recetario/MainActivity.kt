@@ -3,6 +3,7 @@ package com.example.recetario
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,9 +21,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.net.Uri
+import android.widget.MediaController
+import android.widget.VideoView
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -210,20 +218,16 @@ fun PerfilGastronomicoView() {
                         modifier = Modifier.padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
+                        // Foto de perfil circular desde res/drawable/foto.jpg
+                        Image(
+                            painter = painterResource(id = R.drawable.foto),
+                            contentDescription = "Foto de perfil",
+                            contentScale = ContentScale.Crop,
                             modifier = Modifier
-                                .size(46.dp)
+                                .size(48.dp)
                                 .clip(CircleShape)
-                                .background(PrimaryTeal),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AccountCircle,
-                                contentDescription = "Foto de perfil",
-                                tint = Color.White,
-                                modifier = Modifier.size(42.dp)
-                            )
-                        }
+                        )
+
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(nombre, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextDark)
@@ -368,61 +372,256 @@ fun MetricBox(modifier: Modifier, icon: String, title: String, value: String) {
     }
 }
 
-// 2. PANTALLA: FOTOS (Catálogo de recetas visuales)
+// MODELO DE DATOS PARA LA VISTA DE FOTOS CON DETALLE
+data class RecetaFotoDetalle(
+    val titulo: String,
+    val calorias: String,
+    val descripcion: String,
+    val imagenRes: Int
+)
+
+// 2. PANTALLA: FOTOS (Catálogo de recetas visuales con selección y modal de foto ampliada)
 @Composable
 fun RecetasFotosView() {
-    val items = listOf(
-        Pair("Ensalada César", "🥗 380 kcal"),
-        Pair("Salmón Horneado", "🐟 520 kcal"),
-        Pair("Tacos de Pollo", "🌮 450 kcal"),
-        Pair("Bowl de Quinoa", "🥣 290 kcal")
+    var recetaSeleccionada by remember { mutableStateOf<RecetaFotoDetalle?>(null) }
+
+    val recetas = listOf(
+        RecetaFotoDetalle(
+            titulo = "Ensalada César",
+            calorias = "380 kcal",
+            descripcion = "Pechuga a la plancha, lechuga romana fresca, crutones integrales y aderezo ligero de yogur.",
+            imagenRes = R.drawable.ensalada_cesar
+        ),
+        RecetaFotoDetalle(
+            titulo = "Salmón Horneado",
+            calorias = "520 kcal",
+            descripcion = "Filete de salmón al horno con finas hierbas, pimentones asados y aceite de oliva virgen.",
+            imagenRes = R.drawable.salmon
+        ),
+        RecetaFotoDetalle(
+            titulo = "Tacos de Pollo",
+            calorias = "450 kcal",
+            descripcion = "Tortillas de maíz con pollo desmechado, guacamole casero, pico de gallo.",
+            imagenRes = R.drawable.tacos
+        ),
+        RecetaFotoDetalle(
+            titulo = "Bowl de Quinoa",
+            calorias = "290 kcal",
+            descripcion = "Base de quinoa con pollo horneado, aguacate y semillas de calabaza tostadas.",
+            imagenRes = R.drawable.quinua
+        )
     )
+
     Column(modifier = Modifier.fillMaxSize()) {
-        Text("Fotos de Recetas", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Text(
+            text = "Fotos de Recetas",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextDark
+        )
+        Text(
+            text = "Toca un plato para ver su foto y detalle",
+            fontSize = 10.sp,
+            color = TextMuted
+        )
+
         Spacer(modifier = Modifier.height(10.dp))
+
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(items) { item ->
+            items(recetas) { item ->
                 Card(
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     border = CardDefaults.outlinedCardBorder(),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { recetaSeleccionada = item }
                 ) {
-                    Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(item.second.take(2), fontSize = 22.sp)
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Miniatura de la receta
+                        Image(
+                            painter = painterResource(id = item.imagenRes),
+                            contentDescription = item.titulo,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                        )
+
                         Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(item.first, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                            Text(item.second.drop(2), color = TextMuted, fontSize = 10.sp)
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = item.titulo,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = TextDark
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = item.calorias,
+                                color = TextMuted,
+                                fontSize = 10.sp
+                            )
                         }
+
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowRight,
+                            contentDescription = "Ver detalle",
+                            tint = TextMuted,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
             }
         }
     }
+
+    // DIÁLOGO MODAL CON FOTO GRANDE AL TOCAR UN PLATO
+    recetaSeleccionada?.let { receta ->
+        AlertDialog(
+            onDismissRequest = { recetaSeleccionada = null },
+            confirmButton = {
+                TextButton(onClick = { recetaSeleccionada = null }) {
+                    Text("Cerrar", color = PrimaryTeal, fontWeight = FontWeight.Bold)
+                }
+            },
+            title = {
+                Text(
+                    text = receta.titulo,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = TextDark
+                )
+            },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Image(
+                        painter = painterResource(id = receta.imagenRes),
+                        contentDescription = receta.titulo,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(130.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "🔥 ${receta.calorias}",
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryTeal,
+                        fontSize = 12.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = receta.descripcion,
+                        fontSize = 11.sp,
+                        color = TextDark,
+                        lineHeight = 15.sp
+                    )
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(14.dp)
+        )
+    }
 }
 
-// 3. PANTALLA: VIDEO (Tips del Chef)
+// 3. PANTALLA: VIDEO (Tips del Chef con reproductor nativo)
 @Composable
 fun TipsYVideosView() {
-    Column(modifier = Modifier.fillMaxSize()) {
-        Text("Videos & Tips Culinarios", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+    val context = LocalContext.current
+    // Ruta al archivo MP4 guardado en res/raw/video_sellar_carne.mp4
+    val videoUri = remember {
+        Uri.parse("android.resource://${context.packageName}/${R.raw.video_sellar_carne}")
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+        Text(
+            text = "Videos & Tips Culinarios",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextDark
+        )
+        Text(
+            text = "Técnicas esenciales de cocina explicadas en video",
+            fontSize = 10.sp,
+            color = TextMuted
+        )
+
         Spacer(modifier = Modifier.height(10.dp))
+
         Card(
             shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = LightTealBg),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = CardDefaults.outlinedCardBorder(),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text("▶️ Cómo sellar carne correctamente", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Column(modifier = Modifier.padding(10.dp)) {
+                Text(
+                    text = "🥩 Cómo sellar carne correctamente",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    color = TextDark
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // REPRODUCTOR DE VIDEO NATIVO
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(170.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.Black),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AndroidView(
+                        factory = { ctx ->
+                            VideoView(ctx).apply {
+                                setVideoURI(videoUri)
+                                val controller = MediaController(ctx)
+                                controller.setAnchorView(this)
+                                setMediaController(controller)
+                                // Inicia pausado o dale start() si prefieres autoplay
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "Puntos clave de la técnica:",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp,
+                    color = PrimaryTeal
+                )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("Tiempo de reposo y temperatura de la sartén.", color = TextMuted, fontSize = 10.sp)
+                Text(
+                    text = "• Secar la superficie con papel absorbente.\n• Sartén a fuego alto con poco aceite.\n• No mover la pieza durante 3 a 4 minutos para formar costra.",
+                    fontSize = 10.sp,
+                    color = TextMuted,
+                    lineHeight = 14.sp
+                )
             }
         }
     }
 }
 
-// 4. PANTALLA: web
+// 4. PANTALLA: WEB
 @Composable
 fun RestaurantesWebView() {
     Column(modifier = Modifier.fillMaxSize()) {
